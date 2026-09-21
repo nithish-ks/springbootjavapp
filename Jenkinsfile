@@ -39,6 +39,19 @@ pipeline {
             }
         }
 
+        stage('SonarQube Analysis') {
+    steps {
+        withSonarQubeEnv('sonar-server') {
+            sh '''
+                mvn sonar:sonar \
+                    -Dsonar.projectKey=springbootjavaapp \
+                    -Dsonar.projectName=springbootjavaapp \
+                    -Dsonar.java.binaries=target/classes
+            '''
+        }
+    }
+}
+
         stage('Package with Maven') {
             steps {
                 sh 'mvn package'
