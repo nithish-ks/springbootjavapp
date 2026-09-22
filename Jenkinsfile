@@ -63,5 +63,18 @@ pipeline {
         sh 'docker build -t petclinic:latest .'
     }
 }
+
+stage('Trivy Image Scan') {
+    steps {
+        sh '''
+            trivy image --severity HIGH,CRITICAL --format table \
+                -o trivy-image-report.txt \
+                petclinic:latest
+        '''
+
+        archiveArtifacts artifacts: 'trivy-image-report.txt',
+                         allowEmptyArchive: true
+    }
+}
     }
 }
