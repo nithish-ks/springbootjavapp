@@ -7,6 +7,8 @@ pipeline {
     IMAGE_TAG  = 'latest'
     DEPLOYMENT_NAME = 'petclinic'
 K8S_NAMESPACE   = 'default'
+EMAIL_FROM       = 'chickoo.nithish.com'
+EMAIL_RECIPIENTS = 'nithishks007.com'
 }
 
     tools {
@@ -133,6 +135,63 @@ stage('Verify Deployment Rollout') {
                     --timeout=180s
             '''
         }
+    }
+}
+
+
+post {
+    success {
+        script {
+            echo "Deployment verified successfully. Sending success email."
+
+            withCredentials([
+                string(
+                    credentialsId: 'brevo-api-key',
+                    variable: 'BREVO_API_KEY'
+                )
+            ]) {
+                sh """
+                    curl -X POST https://api.brevo.com/v3/smtp/email \
+                      -H "api-key: \$BREVO_API_KEY" \
+                      -H "Content-Type: application/json" \
+                      -d '{
+                        "sender": {"email": "${EMAIL_FROM}"},
+                        "to": [{"email": "${EMAIL_RECIPIENTS}"}],
+                        "subject": "SUCCESS: Jenkins Pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        "textContent": "Pipeline completed successfully and PetClinic was deployed successfully to AKS. Build URL: ${env.BUILD_URL}"
+                      }'
+                """
+            }
+        }
+    }
+
+    failure {
+        script {
+            echo "Pipeline failed. Sending failure email."
+
+            withCredentials([
+                string(
+                    credentialsId: 'brevo-api-key',
+                    variable: 'BREVO_API_KEY'
+                )
+            ]) {
+                sh """
+                    curl -X POST https://api.brevo.com/v3/smtp/email \
+                      -H "api-key: \$BREVO_API_KEY" \
+                      -H "Content-Type: application/json" \
+                      -d '{
+                        "sender": {"email": "${EMAIL_FROM}"},
+                        "to": [{"email": "${EMAIL_RECIPIENTS}"}],
+                        "subject": "FAILED: Jenkins Pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        "textContent": "Pipeline failed. Check Jenkins console log: ${env.BUILD_URL}console"
+                      }'
+                """
+            }
+        }
+    }
+
+    always {
+        echo "Build result: ${currentBuild.currentResult}"
     }
 }
     }
