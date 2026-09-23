@@ -7,8 +7,8 @@ pipeline {
     IMAGE_TAG  = 'latest'
     DEPLOYMENT_NAME = 'petclinic'
 K8S_NAMESPACE   = 'default'
-EMAIL_FROM       = 'chickoo.nithish.com'
-EMAIL_RECIPIENTS = 'nithishks007.com'
+EMAIL_FROM       = 'chickoo.nithish@gmail.com'
+EMAIL_RECIPIENTS = 'nithishks007@gmail.com'
 }
 
     tools {
@@ -138,8 +138,9 @@ stage('Verify Deployment Rollout') {
     }
 }
 
+    }
 
-post {
+    post {
     success {
         script {
             echo "Deployment verified successfully. Sending success email."
@@ -194,5 +195,4 @@ post {
         echo "Build result: ${currentBuild.currentResult}"
     }
 }
-    }
 }
