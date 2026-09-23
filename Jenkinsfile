@@ -152,16 +152,20 @@ stage('Verify Deployment Rollout') {
                 )
             ]) {
                 sh """
-                    curl -X POST https://api.brevo.com/v3/smtp/email \
-                      -H "api-key: \$BREVO_API_KEY" \
-                      -H "Content-Type: application/json" \
-                      -d '{
-                        "sender": {"email": "${EMAIL_FROM}"},
-                        "to": [{"email": "${EMAIL_RECIPIENTS}"}],
-                        "subject": "SUCCESS: Jenkins Pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                        "textContent": "Pipeline completed successfully and PetClinic was deployed successfully to AKS. Build URL: ${env.BUILD_URL}"
-                      }'
-                """
+    HTTP_CODE=\$(curl -s -o /tmp/brevo.out -w '%{http_code}' \
+      -X POST https://api.brevo.com/v3/smtp/email \
+      -H "api-key: \$BREVO_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "sender": {"email": "${EMAIL_FROM}"},
+        "to": [{"email": "${EMAIL_RECIPIENTS}"}],
+        "subject": "SUCCESS: Jenkins Pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+        "textContent": "Pipeline completed successfully and PetClinic was deployed to AKS."
+      }')
+
+    echo "Brevo HTTP response: \$HTTP_CODE"
+    cat /tmp/brevo.out
+"""
             }
         }
     }
