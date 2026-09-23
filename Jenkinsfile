@@ -5,6 +5,8 @@ pipeline {
     ACR_SERVER = 'acrnithish090826.azurecr.io'
     IMAGE_NAME = 'springbootjavaapp'
     IMAGE_TAG  = 'latest'
+    DEPLOYMENT_NAME = 'petclinic'
+K8S_NAMESPACE   = 'default'
 }
 
     tools {
@@ -100,6 +102,35 @@ stage('Push to ACR') {
                 docker push $ACR_SERVER/$IMAGE_NAME:$IMAGE_TAG
 
                 docker logout $ACR_SERVER
+            '''
+        }
+    }
+}
+
+stage('Deploy to AKS') {
+    steps {
+        withCredentials([
+            file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')
+        ]) {
+            sh '''
+                kubectl apply -n $K8S_NAMESPACE -f k8s/deployment.yaml
+                kubectl apply -n $K8S_NAMESPACE -f k8s/service.yaml
+            '''
+        }
+    }
+}
+
+stage('Verify Deployment Rollout') {
+    steps {
+        withCredentials([
+            file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')
+        ]) {
+            sh '''
+                kubectl get pods -n $K8S_NAMESPACE
+                kubectl get svc -n $K8S_NAMESPACE
+                kubectl rollout status deployment/$DEPLOYMENT_NAME \
+                    -n $K8S_NAMESPACE \
+                    --timeout=180s
             '''
         }
     }
