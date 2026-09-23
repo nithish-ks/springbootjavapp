@@ -1,6 +1,12 @@
 pipeline {
     agent any
 
+    environment {
+    ACR_SERVER = 'acrnithish090826.azurecr.io'
+    IMAGE_NAME = 'springbootjavaapp'
+    IMAGE_TAG  = 'latest'
+}
+
     tools {
         maven 'maven'
     }
@@ -60,20 +66,42 @@ pipeline {
 
         stage('Docker Build') {
     steps {
-        sh 'docker build -t petclinic:latest .'
+        sh 'docker build -t $ACR_SERVER/$IMAGE_NAME:$IMAGE_TAG .'
     }
 }
-
 stage('Trivy Image Scan') {
     steps {
         sh '''
             trivy image --severity HIGH,CRITICAL --format table \
                 -o trivy-image-report.txt \
-                petclinic:latest
+                $ACR_SERVER/$IMAGE_NAME:$IMAGE_TAG
         '''
 
         archiveArtifacts artifacts: 'trivy-image-report.txt',
                          allowEmptyArchive: true
+    }
+}
+
+
+stage('Push to ACR') {
+    steps {
+        withCredentials([
+            usernamePassword(
+                credentialsId: 'acr-creds',
+                usernameVariable: 'ACR_USER',
+                passwordVariable: 'ACR_PASS'
+            )
+        ]) {
+            sh '''
+                echo "$ACR_PASS" | docker login $ACR_SERVER \
+                    -u "$ACR_USER" \
+                    --password-stdin
+
+                docker push $ACR_SERVER/$IMAGE_NAME:$IMAGE_TAG
+
+                docker logout $ACR_SERVER
+            '''
+        }
     }
 }
     }
